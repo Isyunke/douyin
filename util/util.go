@@ -3,6 +3,7 @@ package util
 import (
 	"github.com/google/uuid"
 	"github.com/ser163/WordBot/generate"
+	"strings"
 )
 
 func CreateUuid() int64 {
@@ -16,4 +17,11 @@ func CreateRandomString(count int) []string {
 		randStrs = append(randStrs, wordList.Word)
 	}
 	return randStrs
+}
+
+func StringStrip(input string) string {
+	if input == "" {
+		return ""
+	}
+	return strings.Join(strings.Fields(input), "")
 }

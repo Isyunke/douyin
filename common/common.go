@@ -18,12 +18,17 @@ const (
 
 //for upload settings
 const (
+	//UploadAccessKeyID     = ""
+	//UploadAccessKeySecret = ""
 	UploadServerURL       = "https://oss-cn-hangzhou.aliyuncs.com"
-	UploadAccessKeyID     = "LTAI5tQ8pkD4D4CQmznGxU1A"
-	UploadAccessKeySecret = "oNFSW47dgshTlt1y9TMqPx5SRFBeN0"
 	UploadServerBucket    = "tdouyinbuc"
 	UploadBucketDirectory = "douyin_test"
 	UploadVideoMaxSize    = 1024 * 1024 * 1024 //设置最多传1GB文件
+)
+
+var (
+	UploadAccessKeyID     = ""
+	UploadAccessKeySecret = ""
 )
 
 var (

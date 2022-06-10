@@ -1,14 +1,18 @@
 package main
 
 import (
-	"net/http"
-
+	"bufio"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/warthecatalyst/douyin/api"
+	"github.com/warthecatalyst/douyin/common"
 	"github.com/warthecatalyst/douyin/controller"
 	"github.com/warthecatalyst/douyin/dao"
 	"github.com/warthecatalyst/douyin/service"
 	"github.com/warthecatalyst/douyin/tokenx"
+	"net/http"
+	"os"
+	"strings"
 )
 
 func CheckLogin() gin.HandlerFunc {
@@ -30,6 +34,26 @@ func CheckLogin() gin.HandlerFunc {
 		c.Set("user_id", userId)
 		c.Next()
 	}
+}
+
+func initData() {
+	path := "data/AccessKey.txt"
+	file, err := os.OpenFile(path, os.O_RDWR, 0666)
+	if err != nil {
+		panic(err)
+	}
+	reader := bufio.NewReader(file)
+	for i := 0; i < 2; i++ {
+		input, _ := reader.ReadString('\n')
+		input = strings.TrimSuffix(input, "\r\n")
+		if common.UploadAccessKeyID == "" {
+			common.UploadAccessKeyID = input
+		} else {
+			common.UploadAccessKeySecret = input
+		}
+	}
+	fmt.Println(common.UploadAccessKeyID)
+	fmt.Println(common.UploadAccessKeySecret)
 }
 
 func initRouter(r *gin.Engine) {
@@ -59,6 +83,7 @@ func initRouter(r *gin.Engine) {
 }
 
 func initAll() {
+	initData()
 	dao.InitDB()
 	//rdb.InitRdb()
 
