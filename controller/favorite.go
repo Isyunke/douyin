@@ -13,6 +13,8 @@ import (
 func FavoriteAction(c *gin.Context) {
 	userId, err := getUserId(c)
 	if err != nil {
+		logx.DyLogger.Errorf("Can't get userId from token")
+		c.JSON(http.StatusOK, api.Response{StatusCode: api.TokenInvalidErr, StatusMsg: api.ErrorCodeToMsg[api.TokenInvalidErr]})
 		return
 	}
 	vId := c.Query("video_id")
@@ -24,7 +26,19 @@ func FavoriteAction(c *gin.Context) {
 	if err == nil {
 		c.JSON(http.StatusOK, api.Response{StatusCode: 0})
 	} else {
-		c.JSON(http.StatusOK, api.Response{StatusCode: 1, StatusMsg: "Something goes wrong"})
+		if err.Error() == "actionType Error" {
+			c.JSON(http.StatusOK, api.Response{
+				StatusCode: api.UnKnownActionType,
+				StatusMsg:  api.ErrorCodeToMsg[api.UnKnownActionType],
+			})
+		} else if err.Error() == "no Such Record" {
+			c.JSON(http.StatusOK, api.Response{
+				StatusCode: api.RecordNotExistErr,
+				StatusMsg:  api.ErrorCodeToMsg[api.RecordNotExistErr],
+			})
+		} else {
+			c.JSON(http.StatusOK, api.Response{StatusCode: api.InnerErr, StatusMsg: api.ErrorCodeToMsg[api.InnerErr] + ":" + err.Error()})
+		}
 	}
 }
 
@@ -32,12 +46,14 @@ func FavoriteAction(c *gin.Context) {
 func FavoriteList(c *gin.Context) {
 	userId, err := getUserId(c)
 	if err != nil {
+		logx.DyLogger.Errorf("Can't get userId from token")
+		c.JSON(http.StatusOK, api.Response{StatusCode: api.TokenInvalidErr, StatusMsg: api.ErrorCodeToMsg[api.TokenInvalidErr]})
 		return
 	}
 	videoList, err := service.FavoriteListInfo(userId)
 	if err != nil {
 		logx.DyLogger.Errorf("Can't get videoList from userId")
-		c.JSON(http.StatusOK, api.Response{StatusCode: 1, StatusMsg: "Can't get videoList from userId"})
+		c.JSON(http.StatusOK, api.Response{StatusCode: api.RecordNotExistErr, StatusMsg: api.ErrorCodeToMsg[api.RecordNotExistErr]})
 		return
 	}
 	c.JSON(http.StatusOK, VideoListResponse{

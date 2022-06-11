@@ -2,6 +2,7 @@ package rdb
 
 import (
 	"fmt"
+
 	"github.com/go-redis/redis"
 	"github.com/warthecatalyst/douyin/common"
 	"github.com/warthecatalyst/douyin/config"
