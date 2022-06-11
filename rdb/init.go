@@ -14,7 +14,7 @@ var rdb *redis.Client
 func InitRdb() {
 	logx.DyLogger.Infof("start init redis...")
 	rdb = redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:6379", config.DbHost),
+		Addr:     fmt.Sprintf("%s:%d", config.RdbHost, config.RdbPort),
 		Password: "",
 		DB:       0,
 		PoolSize: 100,
@@ -30,7 +30,7 @@ func InitRdb() {
 }
 
 func setSalts() {
-	salts := rdb.SMembers(common.KeySalt).Val()
+	salts := GetAllSalts()
 	if len(salts) != 0 {
 		logx.DyLogger.Infof("[setSalts] salts = %v", salts)
 		return

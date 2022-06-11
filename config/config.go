@@ -19,7 +19,8 @@ var (
 	BcryptCost int    //bcrypt 生成密码时的cost
 	DbName     string //数据库名
 
-	//HostIp string
+	RdbHost string
+	RdbPort int32
 )
 
 func init() {
