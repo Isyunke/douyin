@@ -19,7 +19,7 @@ Port = 6379
 
 
 [feed]
-ListLength = 30
+ListLength = 30  # feed视频获取的视频列表长度
 
 
 [oss]
@@ -31,6 +31,6 @@ AccessKeySecret =
 
 
 [video]
-SavePath = /tmp/test_video/  # 最后要带斜杠
-AllowedExts = .mp4,.wmv,.avi
+SavePath = /tmp/test_video/  # 视频文件临时存放的路径，最后要带斜杠
+AllowedExts = .mp4,.wmv,.avi  # 视频允许的扩展名
 UploadMaxSize = 1024  # 单位为MB

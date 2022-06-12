@@ -59,3 +59,14 @@ drop database douyin;
 create database douyin;
 source ${PROJECT_PATH}/data/test.sql
 ```
+#### 编写自己的配置文件
+按照[config.ini.sample](./config/config.ini.sample)在同级目录下添加自己的config.ini，其中必须要进行修改的是：
+```
+database.DbUser
+database.DbPassWord
+oss.Url
+oss.AccessKeyID
+oss.AccessKeySecret
+video.SavePath
+```
+其他配置项根据提示按需修改即可
