@@ -1,9 +1,12 @@
 package service
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"errors"
 
 	"github.com/warthecatalyst/douyin/api"
+	"github.com/warthecatalyst/douyin/config"
 	"github.com/warthecatalyst/douyin/dao"
 	"github.com/warthecatalyst/douyin/idgenerator"
 	"github.com/warthecatalyst/douyin/logx"
@@ -11,6 +14,11 @@ import (
 	"github.com/warthecatalyst/douyin/rdb"
 	"github.com/warthecatalyst/douyin/tokenx"
 )
+
+func getMd5(s string) string {
+	hash := md5.Sum([]byte(s))
+	return hex.EncodeToString(hash[:])
+}
 
 type UserService struct{}
 
@@ -39,7 +47,11 @@ func (u *UserService) CreateUser(username string, password string) (int64, strin
 	user := &model.User{
 		UserID:   userId,
 		UserName: username,
-		PassWord: password,
+	}
+	if config.UserConf.PasswordEncrpted {
+		user.PassWord = getMd5(password)
+	} else {
+		user.PassWord = password
 	}
 	err = dao.NewUserDaoInstance().AddUser(user)
 	if err != nil {
@@ -78,7 +90,11 @@ func (u *UserService) LoginCheck(username, password string) (*api.User, error) {
 		return nil, nil
 	}
 
-	if password != user.PassWord {
+	w := password
+	if config.UserConf.PasswordEncrpted {
+		w = getMd5(password)
+	}
+	if w != user.PassWord {
 		logx.DyLogger.Errorf("密码不对！")
 		return nil, nil
 	}
