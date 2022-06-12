@@ -1,22 +1,13 @@
-# simple-demo
-
-## 抖音项目服务端简单示例
-
-具体功能内容参考飞书说明文档
-
-工程无其他依赖，直接编译运行即可
-
-```shell
-go build && ./simple-demo
+# 测试
+## 准备工作
+### 安装mysql
+https://www.runoob.com/mysql/mysql-install.html
+### 安装redis
+https://www.runoob.com/redis/redis-install.html
+### 导入测试数据
+进入MySQL命令行，执行以下语句，注意source中要用sql文件的完整路径，不能用相对路径
+```sql
+drop database douyin;
+create database douyin;
+source ${PROJECT_PATH}/data/test.sql
 ```
-
-### 功能说明
-
-接口功能不完善，仅作为示例
-
-* 用户登录数据保存在内存中，单次运行过程中有效
-* 视频上传后会保存到本地 public 目录中，访问时用 127.0.0.1:8080/static/video_name 即可
-
-### 测试数据
-
-测试数据写在 demo_data.go 中，用于列表接口的 mock 测试
