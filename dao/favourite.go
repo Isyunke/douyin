@@ -68,7 +68,7 @@ func (*FavouriteDao) Del(userID, videoID int64) error {
 		VideoID: videoID,
 	}
 
-	err := db.Model(&model.Favourite{}).Delete(&f).Error
+	err := db.Model(&model.Favourite{}).Where("user_id = ? AND video_id = ?", userID, videoID).Delete(&f).Error
 
 	if err != nil {
 		return err
