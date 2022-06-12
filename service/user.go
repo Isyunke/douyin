@@ -5,11 +5,11 @@ import (
 
 	"github.com/warthecatalyst/douyin/api"
 	"github.com/warthecatalyst/douyin/dao"
+	"github.com/warthecatalyst/douyin/idgenerator"
 	"github.com/warthecatalyst/douyin/logx"
 	"github.com/warthecatalyst/douyin/model"
 	"github.com/warthecatalyst/douyin/rdb"
 	"github.com/warthecatalyst/douyin/tokenx"
-	"github.com/warthecatalyst/douyin/util"
 )
 
 type UserService struct{}
@@ -29,9 +29,9 @@ func (u *UserService) CreateUser(username string, password string) (int64, strin
 		return -1, "", err
 	}
 	if userInfo != nil {
-		return -1, "", errors.New("user already exist")
+		return -1, "", errors.New("当前用户名已存在")
 	}
-	userId := util.CreateUuid()
+	userId := idgenerator.GenerateUid()
 	token := tokenx.CreateToken(userId, username)
 	rdb.AddToken(userId, token)
 	logx.DyLogger.Debugf("gen token=%v", token)
@@ -103,25 +103,8 @@ func UserInfo(id int64) (api.UserInfo, error) {
 		}, err
 	}
 
-	// 获取 user_name
-	name, err := getUserName(id)
-	if err != nil {
-		return api.UserInfo{
-			Response: api.Response{StatusCode: api.InnerErr, StatusMsg: api.ErrorCodeToMsg[api.InnerErr]},
-		}, err
-	}
 	return api.UserInfo{
 		Response: api.Response{StatusCode: 0, StatusMsg: "success"},
-		User:     model.UserQuery{ID: u.UserID, FollowCount: u.FollowCount, FollowerCount: u.FollowerCount, Name: name},
+		User:     model.UserQuery{ID: u.UserID, FollowCount: u.FollowCount, FollowerCount: u.FollowerCount, Name: u.UserName},
 	}, nil
-}
-
-// 操作 dao层获取 user_name
-func getUserName(userid int64) (string, error) {
-	u, err := dao.NewUserDaoInstance().GetUserById(userid)
-	if err != nil {
-		return "", err
-	}
-
-	return u.UserName, nil
 }

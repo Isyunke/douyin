@@ -1,13 +1,13 @@
 package rdb
 
-import (
-	"github.com/warthecatalyst/douyin/common"
+const (
+	keySalt = "salt"
 )
 
 func GetAllSalts() []string {
-	return rdb.SMembers(common.KeySalt).Val()
+	return rdb.SMembers(keySalt).Val()
 }
 
 func GetRandomSalt() []byte {
-	return []byte(rdb.SRandMemberN(common.KeySalt, 1).Val()[0])
+	return []byte(rdb.SRandMemberN(keySalt, 1).Val()[0])
 }

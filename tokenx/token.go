@@ -2,15 +2,21 @@ package tokenx
 
 import (
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
-	"github.com/warthecatalyst/douyin/common"
-	"github.com/warthecatalyst/douyin/rdb"
 	"sync"
+
+	"github.com/dgrijalva/jwt-go"
+	"github.com/warthecatalyst/douyin/rdb"
+)
+
+const (
+	userId   = "user_id"
+	username = "user_name"
+	InvalidUserId = -1
 )
 
 func ParseToken(tokenJson string) (int64, string) {
 	if tokenJson == "" {
-		return 0, ""
+		return InvalidUserId, ""
 	}
 	salts := rdb.GetAllSalts()
 	result := make(chan jwt.MapClaims, 1)
@@ -35,17 +41,17 @@ func ParseToken(tokenJson string) (int64, string) {
 	wg.Wait()
 	for item := range result {
 		if item != nil {
-			return int64(item[common.UserId].(float64)), item[common.Username].(string)
+			return int64(item[userId].(float64)), item[username].(string)
 		}
 	}
 
-	return 0, ""
+	return InvalidUserId, ""
 }
 
-func CreateToken(userId int64, userName string) string {
+func CreateToken(uid int64, uname string) string {
 	mapClaims := jwt.MapClaims{
-		common.UserId:   userId,
-		common.Username: userName,
+		userId:   uid,
+		username: uname,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, mapClaims)
 	tokenJson, _ := token.SignedString(rdb.GetRandomSalt())

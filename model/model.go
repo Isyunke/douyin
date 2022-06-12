@@ -27,8 +27,8 @@ type Video struct {
 	UserID        int64  `gorm:"type:BIGINT;not null;index:idx_author_id" json:"user_id" validate:""`
 	FavoriteCount int32  `gorm:"type:INT;not null;default:0" json:"favorite_count" validate:""`
 	CommentCount  int32  `gorm:"type:INT;not null;default:0" json:"comment_count" validate:""`
-	PlayURL       string `gorm:"type:varchar(100);not null" json:"play_url" validate:""`
-	CoverURL      string `gorm:"type:varchar(100);not null" json:"cover_url" validate:""`
+	PlayURL       string `gorm:"type:varchar(200);not null" json:"play_url" validate:""`
+	CoverURL      string `gorm:"type:varchar(200);not null" json:"cover_url" validate:""`
 }
 
 // User 用户:数据库实体
