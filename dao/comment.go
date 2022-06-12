@@ -2,6 +2,8 @@ package dao
 
 import (
 	"errors"
+	"github.com/warthecatalyst/douyin/rdb"
+	"strconv"
 	"sync"
 
 	"github.com/warthecatalyst/douyin/model"
@@ -59,7 +61,13 @@ func (*CommentDao) Add(userID, videoID int64, content string) error {
 	if err != nil {
 		return err
 	}
-	video.CommentCount++ //可能会引发并发问题
+	keyStr := "comment" + strconv.FormatInt(videoID, 10)
+	if rdb.GetRdb().Exists(keyStr).Val() == 0 { //不存在对应的键
+		rdb.GetRdb().Set(keyStr, video.CommentCount, 0)
+	}
+	rdb.GetRdb().Incr(keyStr)
+	res, _ := strconv.Atoi(rdb.GetRdb().Get(keyStr).Val())
+	video.CommentCount = int32(res)
 	db.Save(&video)
 	return nil
 }
@@ -77,7 +85,13 @@ func (*CommentDao) Del(commentId, videoID int64) error {
 	if err != nil {
 		return err
 	}
-	video.CommentCount-- //可能会引发并发问题
+	keyStr := "comment" + strconv.FormatInt(videoID, 10)
+	if rdb.GetRdb().Exists(keyStr).Val() == 0 { //不存在对应的键
+		rdb.GetRdb().Set(keyStr, video.CommentCount, 0)
+	}
+	rdb.GetRdb().Decr(keyStr)
+	res, _ := strconv.Atoi(rdb.GetRdb().Get(keyStr).Val())
+	video.CommentCount = int32(res)
 	db.Save(&video)
 	return nil
 

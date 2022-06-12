@@ -3,7 +3,9 @@ package dao
 import (
 	"errors"
 	"github.com/warthecatalyst/douyin/model"
+	"github.com/warthecatalyst/douyin/rdb"
 	"gorm.io/gorm"
+	"strconv"
 	"sync"
 )
 
@@ -56,7 +58,13 @@ func (*FavouriteDao) Add(userID, videoID int64) error {
 	if err != nil {
 		return err
 	}
-	video.FavoriteCount++ //可能会引发并发问题
+	keyStr := "favorite" + strconv.FormatInt(videoID, 10)
+	if rdb.GetRdb().Exists(keyStr).Val() == 0 { //不存在对应的键
+		rdb.GetRdb().Set(keyStr, video.FavoriteCount, 0)
+	}
+	rdb.GetRdb().Incr(keyStr)
+	res, _ := strconv.Atoi(rdb.GetRdb().Get(keyStr).Val())
+	video.FavoriteCount = int32(res)
 	db.Save(&video)
 	return nil
 }
@@ -78,7 +86,13 @@ func (*FavouriteDao) Del(userID, videoID int64) error {
 	if err != nil {
 		return err
 	}
-	video.FavoriteCount-- //可能会引发并发问题
+	keyStr := "favorite" + strconv.FormatInt(videoID, 10)
+	if rdb.GetRdb().Exists(keyStr).Val() == 0 { //不存在对应的键
+		rdb.GetRdb().Set(keyStr, video.FavoriteCount, 0)
+	}
+	rdb.GetRdb().Decr(keyStr)
+	res, _ := strconv.Atoi(rdb.GetRdb().Get(keyStr).Val())
+	video.FavoriteCount = int32(res)
 	db.Save(&video)
 	return nil
 }
