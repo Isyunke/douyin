@@ -1,9 +1,10 @@
 package controller
 
 import (
-	"github.com/warthecatalyst/douyin/logx"
 	"net/http"
 	"strconv"
+
+	"github.com/warthecatalyst/douyin/logx"
 
 	"github.com/gin-gonic/gin"
 	"github.com/warthecatalyst/douyin/api"
@@ -22,7 +23,7 @@ type CommentActionResponse struct {
 
 // CommentAction no practical effect, just check if token is valid
 func CommentAction(c *gin.Context) {
-	userId, err := getUserId(c)
+	userId, err := getUserId(c, FromCtx)
 
 	if err != nil {
 		logx.DyLogger.Errorf("Can't get userId from token")

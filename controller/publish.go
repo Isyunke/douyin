@@ -16,7 +16,12 @@ type VideoListResponse struct {
 
 // Publish check token then save upload file to public directory
 func Publish(c *gin.Context) {
-	userId, err := getUserId(c) //得到UserId
+	userId, err := getUserId(c, FromCtx) //得到UserId
+	if err != nil {
+		logx.DyLogger.Errorf("Can't get userId from token")
+		c.JSON(http.StatusOK, api.Response{StatusCode: api.TokenInvalidErr, StatusMsg: api.ErrorCodeToMsg[api.TokenInvalidErr]})
+		return
+	}
 	data, err := c.FormFile("data")
 	if err != nil {
 		logx.DyLogger.Error("Can't get file from form using key = 'data'!")
@@ -45,7 +50,12 @@ func Publish(c *gin.Context) {
 
 // PublishList 返回用户发布的所有视频列表
 func PublishList(c *gin.Context) {
-	userId, err := getUserId(c) //得到UserId
+	userId, err := getUserId(c, FromQuery) //得到UserId
+	if err != nil {
+		logx.DyLogger.Errorf("Can't get userId from query")
+		c.JSON(http.StatusOK, api.Response{StatusCode: api.InputFormatCheckErr, StatusMsg: api.ErrorCodeToMsg[api.InputFormatCheckErr]})
+		return
+	}
 	videolist, err := service.PublishListInfo(userId)
 	if err != nil {
 		logx.DyLogger.Errorf("Can't get videoList from userId")

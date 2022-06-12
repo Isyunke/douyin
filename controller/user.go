@@ -14,30 +14,35 @@ import (
 	"github.com/warthecatalyst/douyin/service"
 )
 
-func getUserId(c *gin.Context) (int64, error) {
-	userIdInterface, _ := c.Get("user_id")
-	userIdFromQueryStr := c.Query("user_id")
-	userId, ok := userIdInterface.(int64)
-	if !ok {
-		logx.DyLogger.Errorf("context中user_id(%v)非int！", userIdInterface)
-		c.JSON(http.StatusOK, api.Response{
-			StatusCode: api.InputFormatCheckErr,
-			StatusMsg:  "参数错误"})
-		return -1, errors.New("参数错误")
-	}
-	if userIdFromQueryStr != "" {
-		userIdFromQuery, err := strconv.Atoi(userIdFromQueryStr)
-		if err != nil {
-			logx.DyLogger.Errorf("strconv.Atoi error: %s", err)
+type UIDSrc int
+
+const (
+	FromCtx UIDSrc = iota
+	FromQuery
+)
+
+func getUserId(c *gin.Context, src UIDSrc) (int64, error) {
+	var userId int64
+	if src == FromCtx {
+		userIdInterface, _ := c.Get("user_id")
+		var ok bool
+		userId, ok = userIdInterface.(int64)
+		if !ok {
+			logx.DyLogger.Errorf("context中user_id(%v)非int！", userIdInterface)
 			c.JSON(http.StatusOK, api.Response{
 				StatusCode: api.InputFormatCheckErr,
 				StatusMsg:  "参数错误"})
 			return -1, errors.New("参数错误")
 		}
-		if userId != int64(userIdFromQuery) {
-			logx.DyLogger.Errorf("请求参数中UID和token解析得到的UID不一致！")
+
+	} else if src == FromQuery {
+		userIdStr := c.Query("user_id")
+		var err error
+		userId, err = strconv.ParseInt(userIdStr, 10, 64)
+		if err != nil {
+			logx.DyLogger.Errorf("strconv.Atoi error: %s", err)
 			c.JSON(http.StatusOK, api.Response{
-				StatusCode: api.LogicErr,
+				StatusCode: api.InputFormatCheckErr,
 				StatusMsg:  "参数错误"})
 			return -1, errors.New("参数错误")
 		}
@@ -123,8 +128,10 @@ func Login(c *gin.Context) {
 }
 
 func UserInfo(c *gin.Context) {
-	userId, err := getUserId(c)
+	userId, err := getUserId(c, FromQuery)
 	if err != nil {
+		logx.DyLogger.Errorf("Can't get userId from query")
+		c.JSON(http.StatusOK, api.Response{StatusCode: api.InputFormatCheckErr, StatusMsg: api.ErrorCodeToMsg[api.InputFormatCheckErr]})
 		return
 	}
 
