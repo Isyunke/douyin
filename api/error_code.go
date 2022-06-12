@@ -22,6 +22,7 @@ const (
 
 var ErrorCodeToMsg = map[int]string{
 	InnerErr:            "发生数据库错误",
+	SavingFailErr:       "存储文件错误",
 	TokenInvalidErr:     "非法的Token",
 	UserNotExistErr:     "用户不存在",
 	UserIdNotMatchErr:   "用户Id不匹配",
