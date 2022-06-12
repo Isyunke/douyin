@@ -2,11 +2,13 @@ package controller
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/warthecatalyst/douyin/api"
-	"github.com/warthecatalyst/douyin/service"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"github.com/warthecatalyst/douyin/api"
+	"github.com/warthecatalyst/douyin/logx"
+	"github.com/warthecatalyst/douyin/service"
 )
 
 type UserListResponse struct {
@@ -15,8 +17,10 @@ type UserListResponse struct {
 }
 
 func RelationAction(c *gin.Context) {
-	userId, err := getUserId(c)
+	userId, err := getUserId(c, FromCtx)
 	if err != nil {
+		logx.DyLogger.Errorf("Can't get userId from token")
+		c.JSON(http.StatusOK, api.Response{StatusCode: api.TokenInvalidErr, StatusMsg: api.ErrorCodeToMsg[api.TokenInvalidErr]})
 		return
 	}
 	actTyp := c.Query("action_type")
@@ -48,8 +52,10 @@ func RelationAction(c *gin.Context) {
 }
 
 func FollowList(c *gin.Context) {
-	userId, err := getUserId(c)
+	userId, err := getUserId(c, FromQuery)
 	if err != nil {
+		logx.DyLogger.Errorf("Can't get userId from query")
+		c.JSON(http.StatusOK, api.Response{StatusCode: api.InputFormatCheckErr, StatusMsg: api.ErrorCodeToMsg[api.InputFormatCheckErr]})
 		return
 	}
 	users, err := service.GetFollowList(userId)
@@ -68,8 +74,10 @@ func FollowList(c *gin.Context) {
 }
 
 func FollowerList(c *gin.Context) {
-	userId, err := getUserId(c)
+	userId, err := getUserId(c, FromQuery)
 	if err != nil {
+		logx.DyLogger.Errorf("Can't get userId from query")
+		c.JSON(http.StatusOK, api.Response{StatusCode: api.InputFormatCheckErr, StatusMsg: api.ErrorCodeToMsg[api.InputFormatCheckErr]})
 		return
 	}
 	users, err := service.GetFollowerList(userId)

@@ -1,17 +1,18 @@
 package controller
 
 import (
+	"net/http"
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 	"github.com/warthecatalyst/douyin/api"
 	"github.com/warthecatalyst/douyin/logx"
 	"github.com/warthecatalyst/douyin/service"
-	"net/http"
-	"strconv"
 )
 
 // FavoriteAction 从前端传过来一条点赞或者取消点赞的记录
 func FavoriteAction(c *gin.Context) {
-	userId, err := getUserId(c)
+	userId, err := getUserId(c, FromCtx)
 	if err != nil {
 		logx.DyLogger.Errorf("Can't get userId from token")
 		c.JSON(http.StatusOK, api.Response{StatusCode: api.TokenInvalidErr, StatusMsg: api.ErrorCodeToMsg[api.TokenInvalidErr]})
@@ -44,10 +45,10 @@ func FavoriteAction(c *gin.Context) {
 
 // FavoriteList 传递给前端被登录用户点赞的所有视频
 func FavoriteList(c *gin.Context) {
-	userId, err := getUserId(c)
+	userId, err := getUserId(c, FromQuery)
 	if err != nil {
-		logx.DyLogger.Errorf("Can't get userId from token")
-		c.JSON(http.StatusOK, api.Response{StatusCode: api.TokenInvalidErr, StatusMsg: api.ErrorCodeToMsg[api.TokenInvalidErr]})
+		logx.DyLogger.Errorf("Can't get userId from query")
+		c.JSON(http.StatusOK, api.Response{StatusCode: api.InputFormatCheckErr, StatusMsg: api.ErrorCodeToMsg[api.InputFormatCheckErr]})
 		return
 	}
 	videoList, err := service.FavoriteListInfo(userId)
