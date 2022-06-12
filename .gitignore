@@ -25,4 +25,5 @@ go.work
 
 # due to security concerns
 config/config.ini
+data/AccessKey.txt
 data/test.sql
