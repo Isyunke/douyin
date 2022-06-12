@@ -22,7 +22,7 @@ func CheckLogin(mustLogin bool, getTokenFromUrl bool) gin.HandlerFunc {
 			token = c.PostForm("token")
 		}
 		if token == "" && !mustLogin {
-			c.Set("user_id", api.InvalidUserId)
+			c.Set("user_id", tokenx.InvalidUserId)
 			return
 		}
 		userId, username := tokenx.ParseToken(token)
