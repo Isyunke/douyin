@@ -2,14 +2,16 @@ package controller
 
 import (
 	"errors"
+	"fmt"
+	"net/http"
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 	"github.com/warthecatalyst/douyin/api"
 	"github.com/warthecatalyst/douyin/logx"
 	"github.com/warthecatalyst/douyin/model"
 	"github.com/warthecatalyst/douyin/rdb"
 	"github.com/warthecatalyst/douyin/service"
-	"net/http"
-	"strconv"
 )
 
 func getUserId(c *gin.Context) (int64, error) {
@@ -23,20 +25,22 @@ func getUserId(c *gin.Context) (int64, error) {
 			StatusMsg:  "参数错误"})
 		return -1, errors.New("参数错误")
 	}
-	userIdFromQuery, err := strconv.Atoi(userIdFromQueryStr)
-	if err != nil {
-		logx.DyLogger.Errorf("strconv.Atoi error: %s", err)
-		c.JSON(http.StatusOK, api.Response{
-			StatusCode: api.InputFormatCheckErr,
-			StatusMsg:  "参数错误"})
-		return -1, errors.New("参数错误")
-	}
-	if userId != int64(userIdFromQuery) {
-		logx.DyLogger.Errorf("请求参数中UID和token解析得到的UID不一致！")
-		c.JSON(http.StatusOK, api.Response{
-			StatusCode: api.LogicErr,
-			StatusMsg:  "参数错误"})
-		return -1, errors.New("参数错误")
+	if userIdFromQueryStr != "" {
+		userIdFromQuery, err := strconv.Atoi(userIdFromQueryStr)
+		if err != nil {
+			logx.DyLogger.Errorf("strconv.Atoi error: %s", err)
+			c.JSON(http.StatusOK, api.Response{
+				StatusCode: api.InputFormatCheckErr,
+				StatusMsg:  "参数错误"})
+			return -1, errors.New("参数错误")
+		}
+		if userId != int64(userIdFromQuery) {
+			logx.DyLogger.Errorf("请求参数中UID和token解析得到的UID不一致！")
+			c.JSON(http.StatusOK, api.Response{
+				StatusCode: api.LogicErr,
+				StatusMsg:  "参数错误"})
+			return -1, errors.New("参数错误")
+		}
 	}
 
 	return userId, nil
@@ -70,7 +74,7 @@ func Register(c *gin.Context) {
 	userId, token, err := service.NewUserServiceInstance().CreateUser(username, password)
 	if err != nil {
 		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: api.Response{StatusCode: api.LogicErr, StatusMsg: "注册失败"},
+			Response: api.Response{StatusCode: api.LogicErr, StatusMsg: fmt.Sprintf("注册失败：%s", err.Error())},
 		})
 		return
 	}

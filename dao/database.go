@@ -2,13 +2,15 @@ package dao
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/warthecatalyst/douyin/config"
 	"github.com/warthecatalyst/douyin/logx"
 	"github.com/warthecatalyst/douyin/model"
-	"time"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 )
 
@@ -27,6 +29,12 @@ func InitDB() {
 		config.DbName)
 
 	var err error
+	logLevelMap:=map[string]logger.LogLevel{
+		"silent":logger.Silent,
+		"error":logger.Error,
+		"warn":logger.Warn,
+		"info":logger.Info,
+	}
 	db, err = gorm.Open(mysql.Open(dns), &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true, //关闭外键！！！
 		NamingStrategy: schema.NamingStrategy{
@@ -34,6 +42,7 @@ func InitDB() {
 			TablePrefix:   "t_douyin_", // 表名前缀
 		},
 		SkipDefaultTransaction: true, // 禁用默认事务
+		Logger: logger.Default.LogMode(logLevelMap[config.DbLogLevel]),
 	})
 
 	if err != nil {

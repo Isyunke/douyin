@@ -3,12 +3,12 @@ package dao
 import (
 	"errors"
 	"sync"
+	"time"
 
+	"github.com/warthecatalyst/douyin/config"
 	"github.com/warthecatalyst/douyin/model"
 	"gorm.io/gorm"
 )
-
-const LIMITVIDEOLISTNUMS = 30
 
 // VideoDao dao层执行与视频相关的数据库查询
 type VideoDao struct{}
@@ -44,16 +44,14 @@ func (*VideoDao) GetVideoFromId(videoId int64) (*model.Video, error) {
 	return video, nil
 }
 
-//GetLatest 获取最新的30条视频数据
-//限制数后期可以新增控制
-func (*VideoDao) GetLatest(latestTime string) ([]model.Video, error) {
-
+//GetLatest 获取最新的x条视频数据
+func (*VideoDao) GetLatest(latestTime time.Time) ([]model.Video, error) {
 	var v []model.Video
-	err := db.Model(&model.Video{}).Order("create_at desc").
-		Select("*").
+	err := db.
 		Where("create_at < ?", latestTime).
+		Order("create_at desc").
+		Limit(config.FeedListLength).
 		Find(&v).
-		Limit(LIMITVIDEOLISTNUMS).
 		Error
 	if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err

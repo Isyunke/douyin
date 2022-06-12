@@ -5,14 +5,13 @@ import (
 
 	"github.com/warthecatalyst/douyin/api"
 	"github.com/warthecatalyst/douyin/dao"
+	"github.com/warthecatalyst/douyin/logx"
 )
 
-func Feed(latestTime string) (api.Feed, error) {
+func Feed(latestTime time.Time) (api.Feed, error) {
 	videos, err := dao.NewVideoDaoInstance().GetLatest(latestTime)
-
-	var LOC, _ = time.LoadLocation("Asia/Shanghai")
-	nextTime, err := time.ParseInLocation("2006-01-02 15:04:05", videos[len(videos)-1].CreateAt.Format("2006-01-02 15:04:05"), LOC)
 	if err != nil {
+		logx.DyLogger.Errorf("dao.NewVideoDaoInstance().GetLatest error: %s", err)
 		return api.Feed{
 			Response: api.Response{
 				StatusCode: api.InnerErr,
@@ -20,6 +19,11 @@ func Feed(latestTime string) (api.Feed, error) {
 			},
 		}, err
 	}
+	if len(videos) == 0 {
+		logx.DyLogger.Debug("当前无视频！")
+		return api.Feed{Response: api.OK}, nil
+	}
+
 	v := newVideoList(videos)
 	for i := 0; i < len(v); i++ {
 		//查询视频作者信息
@@ -34,5 +38,6 @@ func Feed(latestTime string) (api.Feed, error) {
 		}
 		v[i].Author = resp.User //作者信息
 	}
-	return api.Feed{VideoLists: v, Response: api.OK, NextTime: nextTime.Unix()}, nil
+
+	return api.Feed{VideoLists: v, Response: api.OK, NextTime: videos[len(videos)-1].CreateAt.UnixMilli()}, nil
 }

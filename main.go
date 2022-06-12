@@ -1,23 +1,30 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/warthecatalyst/douyin/api"
-	"github.com/warthecatalyst/douyin/common"
 	"github.com/warthecatalyst/douyin/controller"
 	"github.com/warthecatalyst/douyin/dao"
+	"github.com/warthecatalyst/douyin/oss"
+	"github.com/warthecatalyst/douyin/rdb"
 	"github.com/warthecatalyst/douyin/service"
 	"github.com/warthecatalyst/douyin/tokenx"
-	"net/http"
-	"os"
-	"strings"
 )
 
-func CheckLogin() gin.HandlerFunc {
+func CheckLogin(mustLogin bool, getTokenFromUrl bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token := c.Query("token")
+		token := ""
+		if getTokenFromUrl {
+			token = c.Query("token")
+		} else {
+			token = c.PostForm("token")
+		}
+		if token == "" && !mustLogin {
+			c.Set("user_id", api.InvalidUserId)
+			return
+		}
 		userId, username := tokenx.ParseToken(token)
 		if username == "" {
 			// TODO: 端上应该重定向到登录界面
@@ -36,26 +43,6 @@ func CheckLogin() gin.HandlerFunc {
 	}
 }
 
-func initData() {
-	path := "data/AccessKey.txt"
-	file, err := os.OpenFile(path, os.O_RDWR, 0666)
-	if err != nil {
-		panic(err)
-	}
-	reader := bufio.NewReader(file)
-	for i := 0; i < 2; i++ {
-		input, _ := reader.ReadString('\n')
-		input = strings.TrimSuffix(input, "\r\n")
-		if common.UploadAccessKeyID == "" {
-			common.UploadAccessKeyID = input
-		} else {
-			common.UploadAccessKeySecret = input
-		}
-	}
-	fmt.Println(common.UploadAccessKeyID)
-	fmt.Println(common.UploadAccessKeySecret)
-}
-
 func initRouter(r *gin.Engine) {
 	// public directory is used to serve static resources
 	r.Static("/static", "./public")
@@ -63,30 +50,29 @@ func initRouter(r *gin.Engine) {
 	apiRouter := r.Group("/douyin")
 
 	// basic apis
-	apiRouter.GET("/feed/", controller.Feed)
-	apiRouter.GET("/user/", controller.UserInfo)
+	apiRouter.GET("/feed/", CheckLogin(false, true), controller.Feed)
+	apiRouter.GET("/user/", CheckLogin(true, true), controller.UserInfo)
 	apiRouter.POST("/user/register/", controller.Register)
 	apiRouter.POST("/user/login/", controller.Login)
-	apiRouter.POST("/publish/action/", controller.Publish)
-	apiRouter.GET("/publish/list/", controller.PublishList)
+	apiRouter.POST("/publish/action/", CheckLogin(true, false), controller.Publish)
+	apiRouter.GET("/publish/list/", CheckLogin(true, true), controller.PublishList)
 
 	// extra apis - I
-	apiRouter.POST("/favorite/action/", controller.FavoriteAction)
-	apiRouter.GET("/favorite/list/", controller.FavoriteList)
-	apiRouter.POST("/comment/action/", controller.CommentAction)
-	apiRouter.GET("/comment/list/", controller.CommentList)
+	apiRouter.POST("/favorite/action/", CheckLogin(true, true), controller.FavoriteAction)
+	apiRouter.GET("/favorite/list/", CheckLogin(true, true), controller.FavoriteList)
+	apiRouter.POST("/comment/action/", CheckLogin(true, true), controller.CommentAction)
+	apiRouter.GET("/comment/list/", CheckLogin(true, true), controller.CommentList)
 
 	// extra apis - II
-	apiRouter.POST("/relation/action/", controller.RelationAction)
-	apiRouter.GET("/relation/follow/list/", controller.FollowList)
-	apiRouter.GET("/relation/follower/list/", controller.FollowerList)
+	apiRouter.POST("/relation/action/", CheckLogin(true, true), controller.RelationAction)
+	apiRouter.GET("/relation/follow/list/", CheckLogin(true, true), controller.FollowList)
+	apiRouter.GET("/relation/follower/list/", CheckLogin(true, true), controller.FollowerList)
 }
 
 func initAll() {
-	initData()
 	dao.InitDB()
-	//rdb.InitRdb()
-
+	rdb.Init()
+	oss.Init()
 }
 
 func main() {

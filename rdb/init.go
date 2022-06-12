@@ -4,18 +4,16 @@ import (
 	"fmt"
 
 	"github.com/go-redis/redis"
-	"github.com/warthecatalyst/douyin/common"
+	"github.com/ser163/WordBot/generate"
 	"github.com/warthecatalyst/douyin/config"
 	"github.com/warthecatalyst/douyin/logx"
-	"github.com/warthecatalyst/douyin/util"
 )
 
 var rdb *redis.Client
 
-func InitRdb() {
-	logx.DyLogger.Infof("start init redis...")
+func Init() {
 	rdb = redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%d", config.RdbHost, config.RdbPort),
+		Addr:     fmt.Sprintf("%s:%s", config.RdbHost, config.RdbPort),
 		Password: "",
 		DB:       0,
 		PoolSize: 100,
@@ -23,22 +21,31 @@ func InitRdb() {
 
 	_, err := rdb.Ping().Result()
 	if err != nil {
-		logx.DyLogger.Panicf("[InitRdb] connect redis error, err=%+v", err)
+		logx.DyLogger.Panicf("connect redis error, err=%+v", err)
 	}
 
 	setSalts()
 	return
 }
 
+func createRandomString(count int) []string {
+	var randStrs []string
+	for i := 1; i <= count; i++ {
+		wordList, _ := generate.GenRandomMix(10)
+		randStrs = append(randStrs, wordList.Word)
+	}
+	return randStrs
+}
+
 func setSalts() {
 	salts := GetAllSalts()
 	if len(salts) != 0 {
-		logx.DyLogger.Infof("[setSalts] salts = %v", salts)
+		logx.DyLogger.Infof("salts already exist!")
 		return
 	}
-	err := rdb.SAdd(common.KeySalt, util.CreateRandomString(10)).Err()
+	err := rdb.SAdd(keySalt, createRandomString(10)).Err()
 	if err != nil {
-		logx.DyLogger.Panicf("[setSalts] set salts error, err=%+v", err)
+		logx.DyLogger.Panicf("set salts error, err=%+v", err)
 	}
 	return
 }
