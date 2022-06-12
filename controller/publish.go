@@ -19,14 +19,14 @@ func Publish(c *gin.Context) {
 	userId, err := getUserId(c) //得到UserId
 	data, err := c.FormFile("data")
 	if err != nil {
-		logx.DyLogger.Error("Can't form file")
+		logx.DyLogger.Error("Can't get file from form using key = 'data'!")
 		c.JSON(http.StatusOK, api.Response{
 			StatusCode: api.InnerErr,
 			StatusMsg:  api.ErrorCodeToMsg[api.InnerErr],
 		})
 		return
 	}
-	title := c.Query("title") //视频名称
+	title := c.PostForm("title") //视频名称
 	filename := data.Filename
 	logx.DyLogger.Info(title)
 	err = service.PublishVideoInfo(data, userId, title)
