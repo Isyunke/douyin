@@ -1,16 +1,41 @@
-# simple-demo
+# douyin 抖音项目服务端
+## 一、项目环境配置与运行
 
-## 抖音项目服务端简单示例
+- MYSQL8.0
+- Redis 3.2
+- ffmpeg>=4.1.1
 
-具体功能内容参考飞书说明文档
+> 有需要本人阿里云oss账户进行测试的，可以邮件联系本人18317011442@163.com
 
-工程无其他依赖，直接编译运行即可
-
+### 项目依赖安装
 ```shell
-go build && ./simple-demo
+go mod tidy
+```
+会下载如下的依赖：
+```shell
+go download
+    github.com/aliyun/aliyun-oss-go-sdk v2.2.4+incompatible
+    github.com/dgrijalva/jwt-go v3.2.0+incompatible
+    github.com/gin-gonic/gin v1.7.7
+    github.com/go-redis/redis v6.15.9+incompatible
+    github.com/google/uuid v1.3.0
+    github.com/ser163/WordBot v1.0.0
+    github.com/u2takey/ffmpeg-go v0.4.1
+    gopkg.in/ini.v1 v1.66.5
+    gorm.io/driver/mysql v1.3.4
+    gorm.io/gorm v1.23.5
 ```
 
-### 功能说明
+### 项目运行
+```shell
+go run main.go
+```
+
+## 项目结构
+### 项目整体结构设计图
+
+
+### 项目
 
 接口功能不完善，仅作为示例
 
