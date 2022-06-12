@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/warthecatalyst/douyin/api"
+	"github.com/warthecatalyst/douyin/config"
 	"github.com/warthecatalyst/douyin/controller"
 	"github.com/warthecatalyst/douyin/dao"
 	"github.com/warthecatalyst/douyin/oss"
@@ -77,9 +78,11 @@ func initAll() {
 
 func main() {
 	initAll()
+	gin.SetMode(config.AppMode)
 	r := gin.Default()
 
 	initRouter(r)
 
-	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+	
+	r.Run(config.Port) // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }

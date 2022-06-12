@@ -26,6 +26,10 @@ type VideoConfig struct {
 	UploadMaxSize int64
 }
 
+type UserConfig struct {
+	PasswordEncrpted bool
+}
+
 // 解析配置文件
 var (
 	AppMode    string // 服务器启动模式默认 debug 模式
@@ -46,6 +50,8 @@ var (
 	OssConf OssConfig
 
 	VideoConf VideoConfig
+
+	UserConf UserConfig
 )
 
 func init() {
@@ -60,6 +66,7 @@ func init() {
 	loadFeed(f)
 	loadOss(f)
 	loadVideo(f)
+	loadUser(f)
 }
 
 // loadServer 加载服务器配置
@@ -107,6 +114,11 @@ func loadVideo(file *ini.File) {
 	videoExts := s.Key("AllowedExts").MustString("mp4,wmv,avi")
 	VideoConf.AllowedExts = strings.Split(videoExts, ",")
 	VideoConf.UploadMaxSize = s.Key("UploadMaxSize").MustInt64(1024)
+}
+
+func loadUser(file *ini.File) {
+	s := file.Section("user")
+	UserConf.PasswordEncrpted=s.Key("PasswordEncrypted").MustBool(false)
 }
 
 var Db *gorm.DB
