@@ -34,3 +34,7 @@ AccessKeySecret =
 SavePath = /tmp/test_video/  # 视频文件临时存放的路径，最后要带斜杠
 AllowedExts = .mp4,.wmv,.avi  # 视频允许的扩展名
 UploadMaxSize = 1024  # 单位为MB
+
+
+[user]
+PasswordEncrypted = true  # 密码是否需要加密，默认为false，即密码不加密入库
