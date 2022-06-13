@@ -1,5 +1,5 @@
 # douyin 抖音项目服务端
-## 一、项目环境配置与运行
+## 项目环境配置与运行
 
 - GO SDK >=1.17
 - MYSQL8.0
@@ -20,7 +20,6 @@ go download
     github.com/go-redis/redis v6.15.9+incompatible
     github.com/google/uuid v1.3.0
     github.com/ser163/WordBot v1.0.0
-    github.com/u2takey/ffmpeg-go v0.4.1
     gopkg.in/ini.v1 v1.66.5
     gorm.io/driver/mysql v1.3.4
     gorm.io/gorm v1.23.5
@@ -31,8 +30,8 @@ go download
 go run main.go
 ```
 
-## 项目结构
-
+## 项目文档
+https://crup81vmv3.feishu.cn/docs/doccnErPybmJBA7P9irSvSzjgOh#
 
 ## 测试
 ### 准备工作
