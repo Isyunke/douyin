@@ -45,42 +45,59 @@ func (*FavouriteDao) Add(userID, videoID int64) error {
 		UserID:  userID,
 		VideoID: videoID,
 	}
-	err := db.Model(&model.Favourite{}).Create(&f).Error
+	//通过事务实现，由于事务具有ACID特性
+	trans := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			trans.Rollback()
+		}
+	}()
+	err := trans.Error
 	if err != nil {
+		return err
+	}
+	//点赞表中写入数据
+	err = trans.Create(&f).Error
+	if err != nil {
+		trans.Rollback()
 		return err
 	}
 
-	//不要忘记在Video表中更新点赞记录
-	var video model.Video
-	err = db.Where("video_id = ?", videoID).First(&video).Error
+	//在Video表中更新点赞记录
+	err = trans.Model(&model.Video{}).Where("video_id = ?", videoID).Update("favorite_count", gorm.Expr("favorite_count + ?", 1)).Error
 	if err != nil {
+		trans.Rollback()
 		return err
 	}
-	video.FavoriteCount++ //可能会引发并发问题
-	db.Save(&video)
-	return nil
+	return trans.Commit().Error
 }
 
 //Del 从数据库中删除一条点赞记录
 func (*FavouriteDao) Del(userID, videoID int64) error {
-	f := model.Favourite{
-		UserID:  userID,
-		VideoID: videoID,
-	}
-
-	err := db.Model(&model.Favourite{}).Delete(&f).Error
-
+	trans := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			trans.Rollback()
+		}
+	}()
+	err := trans.Error
 	if err != nil {
 		return err
 	}
-	var video model.Video
-	err = db.Where("video_id = ?", videoID).First(&video).Error
+	//点赞表中删除数据
+	err = trans.Where("video_id = ? AND user_id = ?", videoID, userID).Delete(&model.Favourite{}).Error
 	if err != nil {
+		trans.Rollback()
 		return err
 	}
-	video.FavoriteCount-- //可能会引发并发问题
-	db.Save(&video)
-	return nil
+
+	//在Video表中更新点赞记录
+	err = trans.Model(&model.Video{}).Where("video_id = ?", videoID).Update("favorite_count", gorm.Expr("favorite_count - ?", 1)).Error
+	if err != nil {
+		trans.Rollback()
+		return err
+	}
+	return trans.Commit().Error
 }
 
 //VideoIDListByUserID 获取某用户点赞的所有视频的ID列表

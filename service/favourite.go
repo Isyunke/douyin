@@ -27,27 +27,27 @@ type FavoriteActionInfoFlow struct {
 
 func (f *FavoriteActionInfoFlow) Do() error {
 	if f.actionType == api.FavoriteAction {
+		if f.checkRecord() {
+			return errors.New("record Already Exists")
+		}
 		if err := f.AddRecord(); err != nil {
 			return err
 		}
 	} else if f.actionType == api.UnFavoriteAction {
-		if err := f.checkRecord(); err != nil {
-			return err
+		if !f.checkRecord() {
+			return errors.New("no such record")
 		}
 		if err := f.DelRecord(); err != nil {
 			return err
 		}
 	} else {
-		return errors.New("actionType must be 1 or 2")
+		return errors.New("actionType Error")
 	}
 	return nil
 }
 
-func (f *FavoriteActionInfoFlow) checkRecord() error {
-	if flag := dao.NewFavoriteDaoInstance().IsFavourite(f.userId, f.videoId); !flag {
-		return errors.New("there's no such record")
-	}
-	return nil
+func (f *FavoriteActionInfoFlow) checkRecord() bool {
+	return dao.NewFavoriteDaoInstance().IsFavourite(f.userId, f.videoId)
 }
 
 func (f *FavoriteActionInfoFlow) AddRecord() error {
@@ -105,7 +105,7 @@ func (f *FavoriteListInfoFlow) getFavoriteList() (*VideoList, error) {
 			CoverUrl:      video.CoverURL,
 			FavoriteCount: int64(video.FavoriteCount),
 			CommentCount:  int64(video.CommentCount),
-			IsFavorite:    false,
+			IsFavorite:    true, //被videolist返回的肯定点赞过了
 		})
 	}
 	return &videolist, nil

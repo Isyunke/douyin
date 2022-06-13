@@ -1,11 +1,49 @@
 package main
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
+	"github.com/warthecatalyst/douyin/api"
+	"github.com/warthecatalyst/douyin/config"
 	"github.com/warthecatalyst/douyin/controller"
 	"github.com/warthecatalyst/douyin/dao"
-	"github.com/warthecatalyst/douyin/global"
+	"github.com/warthecatalyst/douyin/oss"
+	"github.com/warthecatalyst/douyin/rdb"
+	"github.com/warthecatalyst/douyin/service"
+	"github.com/warthecatalyst/douyin/tokenx"
 )
+
+func CheckLogin(mustLogin bool, getTokenFromUrl bool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token := ""
+		if getTokenFromUrl {
+			token = c.Query("token")
+		} else {
+			token = c.PostForm("token")
+		}
+		if token == "" && !mustLogin {
+			c.Set("user_id", int64(tokenx.InvalidUserId))
+			c.Next()
+			return
+		}
+		userId, username := tokenx.ParseToken(token)
+		if username == "" {
+			// TODO: 端上应该重定向到登录界面
+			c.AbortWithStatusJSON(http.StatusOK, api.Response{StatusCode: api.LogicErr, StatusMsg: "非法token"})
+			return
+		}
+		if exist, err := service.NewUserServiceInstance().UserExistByUserId(userId); err != nil {
+			c.AbortWithStatusJSON(http.StatusOK, api.Response{StatusCode: api.InnerErr, StatusMsg: "内部错误"})
+			return
+		} else if !exist {
+			c.AbortWithStatusJSON(http.StatusOK, api.Response{StatusCode: api.InnerErr, StatusMsg: "当前登录用户不存在"})
+			return
+		}
+		c.Set("user_id", userId)
+		c.Next()
+	}
+}
 
 func initRouter(r *gin.Engine) {
 	// public directory is used to serve static resources
@@ -14,34 +52,37 @@ func initRouter(r *gin.Engine) {
 	apiRouter := r.Group("/douyin")
 
 	// basic apis
-	apiRouter.GET("/feed/", controller.Feed)
-	apiRouter.GET("/user/", global.CheckLogin(), controller.UserInfo)
-	apiRouter.POST("/user/register/", global.CheckLogin(), controller.Register)
+	apiRouter.GET("/feed/", CheckLogin(false, true), controller.Feed)
+	apiRouter.GET("/user/", CheckLogin(true, true), controller.UserInfo)
+	apiRouter.POST("/user/register/", controller.Register)
 	apiRouter.POST("/user/login/", controller.Login)
-	apiRouter.POST("/publish/action/", global.CheckLogin(), controller.Publish)
-	apiRouter.GET("/publish/list/", global.CheckLogin(), controller.PublishList)
+	apiRouter.POST("/publish/action/", CheckLogin(true, false), controller.Publish)
+	apiRouter.GET("/publish/list/", CheckLogin(true, true), controller.PublishList)
 
 	// extra apis - I
-	apiRouter.POST("/favorite/action/", global.CheckLogin(), controller.FavoriteAction)
-	apiRouter.GET("/favorite/list/", global.CheckLogin(), controller.FavoriteList)
-	apiRouter.POST("/comment/action/", global.CheckLogin(), controller.CommentAction)
-	apiRouter.GET("/comment/list/", global.CheckLogin(), controller.CommentList)
+	apiRouter.POST("/favorite/action/", CheckLogin(true, true), controller.FavoriteAction)
+	apiRouter.GET("/favorite/list/", CheckLogin(true, true), controller.FavoriteList)
+	apiRouter.POST("/comment/action/", CheckLogin(true, true), controller.CommentAction)
+	apiRouter.GET("/comment/list/", CheckLogin(false, true), controller.CommentList)
 
 	// extra apis - II
-	apiRouter.POST("/relation/action/", global.CheckLogin(), controller.RelationAction)
-	apiRouter.GET("/relation/follow/list/", global.CheckLogin(), controller.FollowList)
-	apiRouter.GET("/relation/follower/list/", global.CheckLogin(), controller.FollowerList)
+	apiRouter.POST("/relation/action/", CheckLogin(true, true), controller.RelationAction)
+	apiRouter.GET("/relation/follow/list/", CheckLogin(true, true), controller.FollowList)
+	apiRouter.GET("/relation/follower/list/", CheckLogin(true, true), controller.FollowerList)
 }
 
 func initAll() {
 	dao.InitDB()
+	rdb.Init()
+	oss.Init()
 }
 
 func main() {
 	initAll()
+	gin.SetMode(config.AppMode)
 	r := gin.Default()
 
 	initRouter(r)
 
-	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+	r.Run(config.Port) // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }

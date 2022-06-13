@@ -1,8 +1,13 @@
 package dao
 
 import (
-	"github.com/warthecatalyst/douyin/model"
+	"errors"
 	"sync"
+	"time"
+
+	"github.com/warthecatalyst/douyin/config"
+	"github.com/warthecatalyst/douyin/model"
+	"gorm.io/gorm"
 )
 
 // VideoDao dao层执行与视频相关的数据库查询
@@ -37,4 +42,19 @@ func (*VideoDao) GetVideoFromId(videoId int64) (*model.Video, error) {
 	}
 
 	return video, nil
+}
+
+//GetLatest 获取最新的x条视频数据
+func (*VideoDao) GetLatest(latestTime time.Time) ([]model.Video, error) {
+	var v []model.Video
+	err := db.
+		Where("create_at < ?", latestTime).
+		Order("create_at desc").
+		Limit(config.FeedListLength).
+		Find(&v).
+		Error
+	if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+	return v, nil
 }

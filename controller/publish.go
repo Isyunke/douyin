@@ -1,11 +1,12 @@
 package controller
 
 import (
-	"fmt"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/warthecatalyst/douyin/api"
-	"net/http"
-	"path/filepath"
+	"github.com/warthecatalyst/douyin/logx"
+	"github.com/warthecatalyst/douyin/service"
 )
 
 type VideoListResponse struct {
@@ -15,46 +16,56 @@ type VideoListResponse struct {
 
 // Publish check token then save upload file to public directory
 func Publish(c *gin.Context) {
-	token := c.PostForm("token")
-
-	if _, exist := usersLoginInfo[token]; !exist {
-		c.JSON(http.StatusOK, api.Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
+	userId, err := getUserId(c, FromCtx) //得到UserId
+	if err != nil {
+		logx.DyLogger.Errorf("Can't get userId from token")
+		c.JSON(http.StatusOK, api.Response{StatusCode: api.TokenInvalidErr, StatusMsg: api.ErrorCodeToMsg[api.TokenInvalidErr]})
 		return
 	}
-
 	data, err := c.FormFile("data")
 	if err != nil {
+		logx.DyLogger.Error("Can't get file from form using key = 'data'!")
 		c.JSON(http.StatusOK, api.Response{
-			StatusCode: 1,
-			StatusMsg:  err.Error(),
+			StatusCode: api.InnerErr,
+			StatusMsg:  api.ErrorCodeToMsg[api.InnerErr],
 		})
 		return
 	}
-
-	filename := filepath.Base(data.Filename)
-	user := usersLoginInfo[token]
-	finalName := fmt.Sprintf("%d_%s", user.Id, filename)
-	saveFile := filepath.Join("./public/", finalName)
-	if err := c.SaveUploadedFile(data, saveFile); err != nil {
+	title := c.PostForm("title") //视频名称
+	filename := data.Filename
+	logx.DyLogger.Info(title)
+	err = service.PublishVideoInfo(data, userId, title)
+	if err != nil {
 		c.JSON(http.StatusOK, api.Response{
-			StatusCode: 1,
-			StatusMsg:  err.Error(),
+			StatusCode: api.InnerErr,
+			StatusMsg:  api.ErrorCodeToMsg[api.InnerErr],
 		})
-		return
+	} else {
+		c.JSON(http.StatusOK, api.Response{
+			StatusCode: 0,
+			StatusMsg:  "文件上传成功 : " + filename,
+		})
 	}
-
-	c.JSON(http.StatusOK, api.Response{
-		StatusCode: 0,
-		StatusMsg:  finalName + " uploaded successfully",
-	})
 }
 
-// PublishList all users have same publish video list
+// PublishList 返回用户发布的所有视频列表
 func PublishList(c *gin.Context) {
+	userId, err := getUserId(c, FromQuery) //得到UserId
+	if err != nil {
+		logx.DyLogger.Errorf("Can't get userId from query")
+		c.JSON(http.StatusOK, api.Response{StatusCode: api.InputFormatCheckErr, StatusMsg: api.ErrorCodeToMsg[api.InputFormatCheckErr]})
+		return
+	}
+	videolist, err := service.PublishListInfo(userId)
+	if err != nil {
+		logx.DyLogger.Errorf("Can't get videoList from userId")
+		c.JSON(http.StatusOK, api.Response{StatusCode: api.RecordNotExistErr, StatusMsg: api.ErrorCodeToMsg[api.RecordNotExistErr]})
+		return
+	}
 	c.JSON(http.StatusOK, VideoListResponse{
 		Response: api.Response{
 			StatusCode: 0,
 		},
-		VideoList: DemoVideos,
+		VideoList: *videolist,
 	})
 }

@@ -2,13 +2,15 @@ package dao
 
 import (
 	"fmt"
-	"github.com/warthecatalyst/douyin/config"
-	"github.com/warthecatalyst/douyin/model"
-	"log"
 	"time"
+
+	"github.com/warthecatalyst/douyin/config"
+	"github.com/warthecatalyst/douyin/logx"
+	"github.com/warthecatalyst/douyin/model"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 )
 
@@ -27,6 +29,12 @@ func InitDB() {
 		config.DbName)
 
 	var err error
+	logLevelMap:=map[string]logger.LogLevel{
+		"silent":logger.Silent,
+		"error":logger.Error,
+		"warn":logger.Warn,
+		"info":logger.Info,
+	}
 	db, err = gorm.Open(mysql.Open(dns), &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true, //关闭外键！！！
 		NamingStrategy: schema.NamingStrategy{
@@ -34,15 +42,16 @@ func InitDB() {
 			TablePrefix:   "t_douyin_", // 表名前缀
 		},
 		SkipDefaultTransaction: true, // 禁用默认事务
+		Logger: logger.Default.LogMode(logLevelMap[config.DbLogLevel]),
 	})
 
 	if err != nil {
-		log.Println("数据库连接失败,err:", err)
+		logx.DyLogger.Panicf("数据库连接失败，错误：%s", err)
 	}
 
 	err = db.AutoMigrate(&model.Video{}, &model.User{}, &model.Follow{}, &model.Comment{}, &model.Favourite{}) //TODO 数据库自动迁移
 	if err != nil {
-		log.Println("数据库自动迁移失败，err:", err)
+		logx.DyLogger.Panicf("数据库自动迁移失败，错误：%s", err)
 	}
 	sqlDb, _ := db.DB()
 
