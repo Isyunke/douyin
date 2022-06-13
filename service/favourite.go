@@ -27,12 +27,15 @@ type FavoriteActionInfoFlow struct {
 
 func (f *FavoriteActionInfoFlow) Do() error {
 	if f.actionType == api.FavoriteAction {
+		if f.checkRecord() {
+			return errors.New("record Already Exists")
+		}
 		if err := f.AddRecord(); err != nil {
 			return err
 		}
 	} else if f.actionType == api.UnFavoriteAction {
-		if err := f.checkRecord(); err != nil {
-			return err
+		if !f.checkRecord() {
+			return errors.New("no such record")
 		}
 		if err := f.DelRecord(); err != nil {
 			return err
@@ -43,11 +46,8 @@ func (f *FavoriteActionInfoFlow) Do() error {
 	return nil
 }
 
-func (f *FavoriteActionInfoFlow) checkRecord() error {
-	if flag := dao.NewFavoriteDaoInstance().IsFavourite(f.userId, f.videoId); !flag {
-		return errors.New("no Such Record")
-	}
-	return nil
+func (f *FavoriteActionInfoFlow) checkRecord() bool {
+	return dao.NewFavoriteDaoInstance().IsFavourite(f.userId, f.videoId)
 }
 
 func (f *FavoriteActionInfoFlow) AddRecord() error {

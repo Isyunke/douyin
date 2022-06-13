@@ -14,6 +14,7 @@ const (
 	UserIdNotMatchErr = 10104
 	UnKnownActionType = 10105
 	RecordNotExistErr = 10106
+	RecordExistErr    = 10107
 
 	//输入逻辑错误
 	InputFormatCheckErr = 10208
@@ -32,4 +33,5 @@ var ErrorCodeToMsg = map[int]string{
 	InputFormatCheckErr: "参数格式错误",
 	LogicErr:            "逻辑错误",
 	InputVideoCheckErr:  "上传视频有误",
+	RecordExistErr:      "数据已经存在",
 }

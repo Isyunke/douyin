@@ -2,8 +2,6 @@ package dao
 
 import (
 	"errors"
-	"github.com/warthecatalyst/douyin/rdb"
-	"strconv"
 	"sync"
 
 	"github.com/warthecatalyst/douyin/model"
@@ -50,57 +48,65 @@ func (*CommentDao) Add(userID, videoID int64, content string) error {
 		VideoID: videoID,
 		Content: content,
 	}
-	err := db.Model(&model.Comment{}).Create(&c).Error
+	trans := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			trans.Rollback()
+		}
+	}()
+	err := trans.Error
 	if err != nil {
+		return err
+	}
+	//评论表中写入数据
+	err = trans.Create(&c).Error
+	if err != nil {
+		trans.Rollback()
 		return err
 	}
 
-	//不要忘记在Video表中更新评论的记录
-	var video model.Video
-	err = db.Where("video_id = ?", videoID).First(&video).Error
+	//在Video表中更新评论记录
+	err = trans.Model(&model.Video{}).Where("video_id = ?", videoID).Update("comment_count", gorm.Expr("comment_count + ?", 1)).Error
 	if err != nil {
+		trans.Rollback()
 		return err
 	}
-	keyStr := "comment" + strconv.FormatInt(videoID, 10)
-	if rdb.GetRdb().Exists(keyStr).Val() == 0 { //不存在对应的键
-		rdb.GetRdb().Set(keyStr, video.CommentCount, 0)
-	}
-	rdb.GetRdb().Incr(keyStr)
-	res, _ := strconv.Atoi(rdb.GetRdb().Get(keyStr).Val())
-	video.CommentCount = int32(res)
-	db.Save(&video)
-	return nil
+	return trans.Commit().Error
 }
 
 //Del 从数据库中删除一条评论记录
 func (*CommentDao) Del(commentId, videoID int64) error {
-	err := db.Model(&model.Comment{}).Delete("id = ?", commentId).Error
-
+	trans := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			trans.Rollback()
+		}
+	}()
+	err := trans.Error
 	if err != nil {
 		return err
 	}
-
-	var video model.Video
-	err = db.Where("video_id = ?", videoID).First(&video).Error
+	//评论表中删除数据
+	err = trans.Where("id = ?", commentId).Delete(&model.Comment{}).Error
 	if err != nil {
+		trans.Rollback()
 		return err
 	}
-	keyStr := "comment" + strconv.FormatInt(videoID, 10)
-	if rdb.GetRdb().Exists(keyStr).Val() == 0 { //不存在对应的键
-		rdb.GetRdb().Set(keyStr, video.CommentCount, 0)
+
+	//在Video表中更新点赞记录
+	err = trans.Model(&model.Video{}).Where("video_id = ?", videoID).Update("comment_count", gorm.Expr("comment_count - ?", 1)).Error
+	if err != nil {
+		trans.Rollback()
+		return err
 	}
-	rdb.GetRdb().Decr(keyStr)
-	res, _ := strconv.Atoi(rdb.GetRdb().Get(keyStr).Val())
-	video.CommentCount = int32(res)
-	db.Save(&video)
-	return nil
+	return trans.Commit().Error
 
 }
 
 //CommentListByVideoID 获取视频的所有评论ID
 func (*CommentDao) CommentListByVideoID(videoID int64) ([]int64, error) {
 	var c []model.Comment
-	err := db.Model(&model.Comment{}).
+	err := db.Model(&model.Comment{}).Order("create_at desc").
 		Select("id").
 		Where("video_id = ?", videoID).
 		Find(&c).Error

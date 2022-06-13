@@ -37,6 +37,11 @@ func FavoriteAction(c *gin.Context) {
 				StatusCode: api.RecordNotExistErr,
 				StatusMsg:  api.ErrorCodeToMsg[api.RecordNotExistErr],
 			})
+		} else if err.Error() == "record Already Exists" {
+			c.JSON(http.StatusOK, api.Response{
+				StatusCode: api.RecordExistErr,
+				StatusMsg:  api.ErrorCodeToMsg[api.RecordExistErr],
+			})
 		} else {
 			c.JSON(http.StatusOK, api.Response{StatusCode: api.InnerErr, StatusMsg: api.ErrorCodeToMsg[api.InnerErr] + ":" + err.Error()})
 		}
