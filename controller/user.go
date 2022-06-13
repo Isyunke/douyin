@@ -9,9 +9,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/warthecatalyst/douyin/api"
 	"github.com/warthecatalyst/douyin/logx"
-	"github.com/warthecatalyst/douyin/model"
 	"github.com/warthecatalyst/douyin/rdb"
 	"github.com/warthecatalyst/douyin/service"
+	"github.com/warthecatalyst/douyin/tokenx"
 )
 
 type UIDSrc int
@@ -32,9 +32,8 @@ func getUserId(c *gin.Context, src UIDSrc) (int64, error) {
 			c.JSON(http.StatusOK, api.Response{
 				StatusCode: api.InputFormatCheckErr,
 				StatusMsg:  "参数错误"})
-			return -1, errors.New("参数错误")
+			return tokenx.InvalidUserId, errors.New("参数错误")
 		}
-
 	} else if src == FromQuery {
 		userIdStr := c.Query("user_id")
 		var err error
@@ -44,7 +43,7 @@ func getUserId(c *gin.Context, src UIDSrc) (int64, error) {
 			c.JSON(http.StatusOK, api.Response{
 				StatusCode: api.InputFormatCheckErr,
 				StatusMsg:  "参数错误"})
-			return -1, errors.New("参数错误")
+			return tokenx.InvalidUserId, errors.New("参数错误")
 		}
 	}
 
@@ -65,7 +64,6 @@ type UserResponse struct {
 func Register(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
-	// TODO: 校验太简单
 	if username == "" || password == "" {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: api.Response{
@@ -85,7 +83,7 @@ func Register(c *gin.Context) {
 	}
 	logx.DyLogger.Debugf("[Register] userId=%+v, token=%+v", userId, token)
 	c.JSON(http.StatusOK, UserLoginResponse{
-		Response: api.Response{StatusCode: 0},
+		Response: api.OK,
 		UserId:   userId,
 		Token:    token,
 	})
@@ -117,9 +115,18 @@ func Login(c *gin.Context) {
 		return
 	}
 	token := rdb.GetToken(user.Id)
+	if token == "" {
+		token = tokenx.CreateToken(user.Id, username)
+		if err := rdb.AddToken(user.Id, token); err != nil {
+			c.JSON(http.StatusOK, UserLoginResponse{
+				Response: api.Response{StatusCode: api.InnerErr, StatusMsg: "签发token失败"},
+			})
+			return
+		}
+	}
 	logx.DyLogger.Debugf("[Login] userId=%+v, token=%+v", user.Id, token)
 	c.JSON(http.StatusOK, UserLoginResponse{
-		Response: api.Response{StatusCode: 0},
+		Response: api.OK,
 		UserId:   user.Id,
 		Token:    token,
 	})
@@ -134,10 +141,16 @@ func UserInfo(c *gin.Context) {
 		c.JSON(http.StatusOK, api.Response{StatusCode: api.InputFormatCheckErr, StatusMsg: api.ErrorCodeToMsg[api.InputFormatCheckErr]})
 		return
 	}
+	loginUserId, err := getUserId(c, FromCtx)
+	if err != nil {
+		logx.DyLogger.Errorf("Can't get userId from context")
+		c.JSON(http.StatusOK, api.Response{StatusCode: api.InputFormatCheckErr, StatusMsg: api.ErrorCodeToMsg[api.InputFormatCheckErr]})
+		return
+	}
 
-	user, err := service.NewUserServiceInstance().GetUserByUserId(userId)
+	user, err := service.NewUserServiceInstance().GetUserByUserId(loginUserId, userId)
 	if user == nil {
-		c.JSON(http.StatusOK, model.Response{
+		c.JSON(http.StatusOK, api.Response{
 			StatusCode: api.LogicErr,
 			StatusMsg:  "用户不存在",
 		})

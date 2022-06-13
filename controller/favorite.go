@@ -25,7 +25,7 @@ func FavoriteAction(c *gin.Context) {
 	actionType, _ := strconv.ParseInt(actp, 10, 32)
 	err = service.FavoriteActionInfo(userId, videoId, int32(actionType))
 	if err == nil {
-		c.JSON(http.StatusOK, api.Response{StatusCode: 0})
+		c.JSON(http.StatusOK, api.OK)
 	} else {
 		if err.Error() == "actionType Error" {
 			c.JSON(http.StatusOK, api.Response{

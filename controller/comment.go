@@ -41,7 +41,7 @@ func CommentAction(c *gin.Context) {
 
 	err = service.CommentActionInfo(commentId, userId, videoId, int32(actionType), content)
 	if err == nil {
-		c.JSON(http.StatusOK, api.Response{StatusCode: 0})
+		c.JSON(http.StatusOK, api.OK)
 	} else {
 		c.JSON(http.StatusOK, api.Response{StatusCode: api.InnerErr, StatusMsg: api.ErrorCodeToMsg[api.InnerErr] + err.Error()})
 	}

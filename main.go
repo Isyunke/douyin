@@ -23,7 +23,8 @@ func CheckLogin(mustLogin bool, getTokenFromUrl bool) gin.HandlerFunc {
 			token = c.PostForm("token")
 		}
 		if token == "" && !mustLogin {
-			c.Set("user_id", tokenx.InvalidUserId)
+			c.Set("user_id", int64(tokenx.InvalidUserId))
+			c.Next()
 			return
 		}
 		userId, username := tokenx.ParseToken(token)
@@ -32,11 +33,11 @@ func CheckLogin(mustLogin bool, getTokenFromUrl bool) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusOK, api.Response{StatusCode: api.LogicErr, StatusMsg: "非法token"})
 			return
 		}
-		if user, err := service.NewUserServiceInstance().GetUserByUserId(userId); err != nil {
-			c.AbortWithStatusJSON(http.StatusOK, api.Response{StatusCode: api.LogicErr, StatusMsg: "内部错误"})
+		if exist, err := service.NewUserServiceInstance().UserExistByUserId(userId); err != nil {
+			c.AbortWithStatusJSON(http.StatusOK, api.Response{StatusCode: api.InnerErr, StatusMsg: "内部错误"})
 			return
-		} else if user == nil {
-			c.AbortWithStatusJSON(http.StatusOK, api.Response{StatusCode: api.LogicErr, StatusMsg: "非法用户"})
+		} else if !exist {
+			c.AbortWithStatusJSON(http.StatusOK, api.Response{StatusCode: api.InnerErr, StatusMsg: "当前登录用户不存在"})
 			return
 		}
 		c.Set("user_id", userId)
@@ -83,6 +84,5 @@ func main() {
 
 	initRouter(r)
 
-	
 	r.Run(config.Port) // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }

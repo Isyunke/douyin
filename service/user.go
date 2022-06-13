@@ -34,14 +34,16 @@ func (u *UserService) CreateUser(username string, password string) (int64, strin
 	userInfo, err := dao.NewUserDaoInstance().GetUserByUsername(username)
 	if err != nil {
 		logx.DyLogger.Errorf("GetUserByUsername error: %s", err)
-		return -1, "", err
+		return tokenx.InvalidUserId, "", err
 	}
 	if userInfo != nil {
-		return -1, "", errors.New("当前用户名已存在")
+		return tokenx.InvalidUserId, "", errors.New("当前用户名已存在")
 	}
 	userId := idgenerator.GenerateUid()
 	token := tokenx.CreateToken(userId, username)
-	rdb.AddToken(userId, token)
+	if err := rdb.AddToken(userId, token); err != nil {
+		return tokenx.InvalidUserId, "", err
+	}
 	logx.DyLogger.Debugf("gen token=%v", token)
 
 	user := &model.User{
@@ -56,13 +58,13 @@ func (u *UserService) CreateUser(username string, password string) (int64, strin
 	err = dao.NewUserDaoInstance().AddUser(user)
 	if err != nil {
 		logx.DyLogger.Errorf("AddUser error: %s", err)
-		return -1, "", err
+		return tokenx.InvalidUserId, "", err
 	}
 
 	return userId, token, nil
 }
 
-func (u *UserService) GetUserByUserId(userId int64) (*api.User, error) {
+func (u *UserService) GetUserByUserId(loginUserId, userId int64) (*api.User, error) {
 	userModel, err := dao.NewUserDaoInstance().GetUserById(userId)
 	if err != nil {
 		return nil, err
@@ -71,13 +73,33 @@ func (u *UserService) GetUserByUserId(userId int64) (*api.User, error) {
 		return nil, nil
 	}
 
-	return &api.User{
+	user := &api.User{
 		Id:            userId,
 		Name:          userModel.UserName,
 		FollowCount:   userModel.FollowCount,
 		FollowerCount: userModel.FollowerCount,
-	}, nil
+	}
 
+	if loginUserId == tokenx.InvalidUserId {
+		user.IsFollow = false
+	} else {
+		follow, err := dao.NewFollowDaoInstance().FindFollow(loginUserId, userId)
+		if err != nil {
+			return nil, err
+		}
+		user.IsFollow = len(follow) > 0
+	}
+
+	return user, nil
+}
+
+func (u *UserService) UserExistByUserId(userId int64) (bool, error) {
+	userModel, err := dao.NewUserDaoInstance().GetUserById(userId)
+	if err != nil {
+		return false, err
+	}
+
+	return userModel != nil, nil
 }
 
 func (u *UserService) LoginCheck(username, password string) (*api.User, error) {
@@ -104,23 +126,5 @@ func (u *UserService) LoginCheck(username, password string) (*api.User, error) {
 		Name:          username,
 		FollowCount:   user.FollowCount,
 		FollowerCount: user.FollowerCount,
-	}, nil
-}
-
-// UserInfo 获取用户信息
-// 包括 user_id,name,follow_count,follower_count,is_favorite
-// 最后一个字段应该和具体业务有关（我暂时还不太理解）
-func UserInfo(id int64) (api.UserInfo, error) {
-	// 获取到 user_id,follow_count,follower_count
-	u, err := dao.NewUserDaoInstance().GetUserById(id)
-	if err != nil {
-		return api.UserInfo{
-			Response: api.Response{StatusCode: api.InnerErr, StatusMsg: api.ErrorCodeToMsg[api.InnerErr]},
-		}, err
-	}
-
-	return api.UserInfo{
-		Response: api.Response{StatusCode: 0, StatusMsg: "success"},
-		User:     model.UserQuery{ID: u.UserID, FollowCount: u.FollowCount, FollowerCount: u.FollowerCount, Name: u.UserName},
 	}, nil
 }

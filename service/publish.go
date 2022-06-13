@@ -254,15 +254,18 @@ type PublishService struct{}
 var publishService = &PublishService{}
 
 // 构造 Video 切片
-func newVideoList(videos []model.Video) []model.VideoQuery {
-	var v []model.VideoQuery
+func newVideoList(videos []model.Video) []api.Video {
+	var v []api.Video
 	for _, i := range videos {
-		v = append(v, model.VideoQuery{
-			VideoID:       i.VideoID,
-			PlayURL:       i.PlayURL,
-			CoverURL:      i.CoverURL,
-			CommentCount:  i.CommentCount,
-			FavoriteCount: i.FavoriteCount,
+		v = append(v, api.Video{
+			Id: i.VideoID,
+			Author: api.User{
+				Id: i.UserID,
+			},
+			PlayUrl:       i.PlayURL,
+			CoverUrl:      i.CoverURL,
+			CommentCount:  int64(i.CommentCount),
+			FavoriteCount: int64(i.FavoriteCount),
 		})
 	}
 
