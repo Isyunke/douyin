@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"runtime"
 	"strconv"
 
 	"github.com/warthecatalyst/douyin/api"
@@ -50,6 +51,13 @@ func checkFileMaxSize(videoSize int64) bool {
 // extractCoverFromVideo 从视频中截取图像的第一帧
 func extractCoverFromVideo(pathVideo, pathImg string) error {
 	binPath := "./bin/" // 最后带斜杠
+	if runtime.GOOS == "windows" {
+		binPath += "windows/"
+	} else if runtime.GOOS == "darwin" {
+		binPath += "darwin/"
+	} else {
+		binPath += "Linux/"
+	}
 	frameExtractionTime := "0"
 	image_mode := "image2"
 	vtime := "0.001"
